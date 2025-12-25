@@ -335,10 +335,12 @@ class DatabaseService {
       SELECT 
         oi.product_name,
         oi.product_id,
+        p.image_path as image_path,
         SUM(oi.quantity) as total_quantity,
         SUM(oi.subtotal) as total_revenue
       FROM order_items oi
       INNER JOIN orders o ON oi.order_id = o.id
+      LEFT JOIN products p ON oi.product_id = p.id
       WHERE $whereClause
       GROUP BY oi.product_id, oi.product_name
       ORDER BY total_revenue DESC

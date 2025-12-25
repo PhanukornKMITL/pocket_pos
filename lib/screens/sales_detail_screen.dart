@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 import '../services/database_service.dart';
 import '../utils/date_filter.dart';
 
@@ -123,14 +125,39 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                              child: Icon(
-                                Icons.shopping_bag,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: (() {
+                                  final imagePath = item['image_path'] as String?;
+                                  if (imagePath != null && imagePath.isNotEmpty) {
+                                    if (kIsWeb) {
+                                      if (imagePath.startsWith('http')) {
+                                        return CircleAvatar(
+                                          backgroundColor: Colors.transparent,
+                                          backgroundImage: NetworkImage(imagePath),
+                                        );
+                                      }
+                                      return CircleAvatar(
+                                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                        child: Icon(Icons.shopping_bag, color: Theme.of(context).primaryColor),
+                                      );
+                                    }
+
+                                    try {
+                                      final file = File(imagePath);
+                                      if (file.existsSync()) {
+                                        return CircleAvatar(
+                                          backgroundColor: Colors.transparent,
+                                          backgroundImage: FileImage(file),
+                                        );
+                                      }
+                                    } catch (_) {}
+                                  }
+
+                                  return CircleAvatar(
+                                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                    child: Icon(Icons.shopping_bag, color: Theme.of(context).primaryColor),
+                                  );
+                                })(),
                             title: Text(
                               productName,
                               style: const TextStyle(
