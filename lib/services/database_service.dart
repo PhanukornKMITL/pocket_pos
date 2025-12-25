@@ -147,9 +147,12 @@ class DatabaseService {
     // Insert order
     final orderId = await db.insert('orders', order.toMap());
 
-    // Insert order items
+    // Insert order items (ensure we don't pass an existing `id` to avoid UNIQUE constraint)
     for (var item in order.items) {
-      batch.insert('order_items', item.copyWith(orderId: orderId).toMap());
+      final itemMap = item.copyWith(orderId: orderId).toMap();
+      // Remove id if present so DB can assign a new autoincrement id
+      itemMap.remove('id');
+      batch.insert('order_items', itemMap);
     }
 
     await batch.commit(noResult: true);
@@ -238,6 +241,40 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Finalize an existing pending order by updating its fields and replacing items.
+  /// Runs in a transaction to ensure consistency.
+  Future<void> finalizeOrder(int orderId, Order order) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // Update order row
+      await txn.update(
+        'orders',
+        {
+          'status': OrderStatus.completed.name,
+          'payment_method': order.paymentMethod,
+          'total': order.total,
+          'completed_at': order.completedAt?.toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [orderId],
+      );
+
+      // Delete existing items for this order
+      await txn.delete(
+        'order_items',
+        where: 'order_id = ?',
+        whereArgs: [orderId],
+      );
+
+      // Insert new items (without id)
+      for (var item in order.items) {
+        final itemMap = item.copyWith(orderId: orderId).toMap();
+        itemMap.remove('id');
+        await txn.insert('order_items', itemMap);
+      }
+    });
   }
 
   // Statistics

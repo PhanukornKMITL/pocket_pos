@@ -39,11 +39,12 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
       );
 
       final db = DatabaseService.instance;
-      await db.createOrder(order);
-
-      // Delete pending order if exists
       if (widget.pendingOrderId != null) {
-        await db.deleteOrder(widget.pendingOrderId!);
+        // Finalize existing pending order (update + replace items)
+        await db.finalizeOrder(widget.pendingOrderId!, order);
+      } else {
+        // Create a fresh completed order
+        await db.createOrder(order);
       }
 
       if (mounted) {
