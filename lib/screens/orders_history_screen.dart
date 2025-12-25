@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/order.dart';
 import '../services/database_service.dart';
 import '../utils/date_filter.dart';
+import '../widgets/filter_bar.dart';
 import 'checkout_screen.dart';
 import 'order_detail_screen.dart';
 
@@ -70,75 +71,38 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       appBar: AppBar(
         title: const Text('ประวัติออเดอร์'),
         actions: [
-          Row(
-            children: [
-              PopupMenuButton<OrderStatus?>(
-                icon: const Icon(Icons.filter_list),
-                onSelected: (status) {
-                  setState(() => _filterStatus = status);
-                  _loadOrders();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: null,
-                    child: Text('ทั้งหมด'),
-                  ),
-                  const PopupMenuItem(
-                    value: OrderStatus.pending,
-                    child: Text('รอดำเนินการ'),
-                  ),
-                  const PopupMenuItem(
-                    value: OrderStatus.completed,
-                    child: Text('เสร็จสิ้น'),
-                  ),
-                  const PopupMenuItem(
-                    value: OrderStatus.cancelled,
-                    child: Text('ยกเลิก'),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 8),
-              DropdownButton<DateFilter?>(
-                value: _isCustomRange ? null : _selectedDateFilter,
-                items: [
-                  ...DateFilter.values.map((filter) => DropdownMenuItem<DateFilter?>(
-                        value: filter,
-                        child: Text(filter.label),
-                      )),
-                  const DropdownMenuItem<DateFilter?>(value: null, child: Text('กำหนดเอง')),
-                ],
-                onChanged: (f) async {
-                  if (f == null) {
-                    // open date range picker for custom range
-                    final now = DateTime.now();
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(now.year - 5),
-                      lastDate: DateTime(now.year + 1),
-                      initialDateRange: (_customStart != null && _customEnd != null)
-                          ? DateTimeRange(start: _customStart!, end: _customEnd!)
-                          : null,
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        _isCustomRange = true;
-                        _customStart = picked.start;
-                        _customEnd = picked.end;
-                      });
-                      _loadOrders();
-                    }
-                  } else {
-                    setState(() {
-                      _selectedDateFilter = f;
-                      _isCustomRange = false;
-                      _customStart = null;
-                      _customEnd = null;
-                    });
-                    _loadOrders();
-                  }
-                },
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilterBar(
+              showStatusFilter: true,
+              status: _filterStatus,
+              onStatusChanged: (s) {
+                setState(() => _filterStatus = s);
+                _loadOrders();
+              },
+              selectedDateFilter: _isCustomRange ? null : _selectedDateFilter,
+              onDateFilterChanged: (f) {
+                setState(() {
+                  _selectedDateFilter = f;
+                  _isCustomRange = false;
+                  _customStart = null;
+                  _customEnd = null;
+                });
+                _loadOrders();
+              },
+              initialCustomRange: (_customStart != null && _customEnd != null)
+                  ? DateTimeRange(start: _customStart!, end: _customEnd!)
+                  : null,
+              onCustomRangeSelected: (range) {
+                setState(() {
+                  _isCustomRange = true;
+                  _customStart = range.start;
+                  _customEnd = range.end;
+                });
+                _loadOrders();
+              },
+              onRefresh: _loadOrders,
+            ),
           ),
         ],
       ),

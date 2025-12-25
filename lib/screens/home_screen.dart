@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/database_service.dart';
 import '../utils/date_filter.dart';
+import '../widgets/filter_bar.dart';
 import 'order_screen.dart';
 import 'products_list_screen.dart';
 import 'orders_history_screen.dart';
@@ -177,22 +178,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  DropdownButton<DateFilter>(
-                    value: _selectedFilter,
-                    items: DateFilter.values.map((filter) {
-                      return DropdownMenuItem(
-                        value: filter,
-                        child: Text(filter.label),
-                      );
-                    }).toList(),
-                    onChanged: (filter) {
-                      if (filter != null) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                        _loadStatistics();
-                      }
+                  FilterBar(
+                    showStatusFilter: false,
+                    selectedDateFilter: _selectedFilter,
+                    onDateFilterChanged: (f) {
+                      setState(() => _selectedFilter = f);
+                      _loadStatistics();
                     },
+                    onCustomRangeSelected: (range) {
+                      // apply custom range directly to statistics
+                      _db.getSalesStatistics(startDate: range.start, endDate: range.end).then((stats) {
+                        if (mounted) setState(() => _statistics = stats);
+                      });
+                    },
+                    onRefresh: _loadStatistics,
                   ),
                 ],
               ),

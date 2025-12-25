@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import '../services/database_service.dart';
 import '../utils/date_filter.dart';
+import '../widgets/filter_bar.dart';
 
 class SalesDetailScreen extends StatefulWidget {
   const SalesDetailScreen({super.key});
@@ -52,10 +53,27 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
       appBar: AppBar(
         title: const Text('รายละเอียดยอดขาย'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadSalesDetail,
-            tooltip: 'รีเฟรช',
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FilterBar(
+              showStatusFilter: false,
+              selectedDateFilter: _selectedFilter,
+              onDateFilterChanged: (f) {
+                setState(() => _selectedFilter = f);
+                _loadSalesDetail();
+              },
+              onCustomRangeSelected: (range) {
+                // treat custom by creating a temporary DateFilter? Not needed here — call db directly
+                setState(() {
+                  _selectedFilter = DateFilter.allTime; // keep label generic
+                });
+                _db.getSalesDetailByProduct(startDate: range.start, endDate: range.end).then((detail) {
+                  if (mounted) setState(() => _salesDetail = detail);
+                });
+              },
+              initialCustomRange: null,
+              onRefresh: _loadSalesDetail,
+            ),
           ),
         ],
       ),
