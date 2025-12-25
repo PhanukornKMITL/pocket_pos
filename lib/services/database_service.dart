@@ -159,14 +159,31 @@ class DatabaseService {
     return orderId;
   }
 
-  Future<List<Order>> getAllOrders({OrderStatus? status}) async {
+  Future<List<Order>> getAllOrders({OrderStatus? status, DateTime? startDate, DateTime? endDate}) async {
     final db = await database;
     String? whereClause;
     List<dynamic>? whereArgs;
 
+    final whereParts = <String>[];
+    final args = <dynamic>[];
+
     if (status != null) {
-      whereClause = 'status = ?';
-      whereArgs = [status.name];
+      whereParts.add('status = ?');
+      args.add(status.name);
+    }
+
+    if (startDate != null) {
+      whereParts.add('created_at >= ?');
+      args.add(startDate.toIso8601String());
+    }
+    if (endDate != null) {
+      whereParts.add('created_at <= ?');
+      args.add(endDate.toIso8601String());
+    }
+
+    if (whereParts.isNotEmpty) {
+      whereClause = whereParts.join(' AND ');
+      whereArgs = args;
     }
 
     final result = await db.query(

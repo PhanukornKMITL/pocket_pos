@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/order.dart';
 import '../services/database_service.dart';
+import '../utils/date_filter.dart';
 import 'checkout_screen.dart';
+import 'order_detail_screen.dart';
 
 class OrdersHistoryScreen extends StatefulWidget {
   const OrdersHistoryScreen({super.key});
@@ -18,6 +20,11 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
   List<Order> _orders = [];
   bool _isLoading = true;
   OrderStatus? _filterStatus;
+  DateFilter? _selectedDateFilter = DateFilter.allTime;
+  // Custom range state
+  bool _isCustomRange = false;
+  DateTime? _customStart;
+  DateTime? _customEnd;
 
   @override
   void initState() {
@@ -28,7 +35,21 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
     try {
-      final orders = await _db.getAllOrders(status: _filterStatus);
+      DateTime? startDate;
+      DateTime? endDate;
+      if (_isCustomRange && _customStart != null && _customEnd != null) {
+        startDate = _customStart;
+        endDate = _customEnd;
+      } else {
+  startDate = _selectedDateFilter?.startDate;
+  endDate = _selectedDateFilter?.endDate;
+      }
+
+      final orders = await _db.getAllOrders(
+        status: _filterStatus,
+        startDate: startDate,
+        endDate: endDate,
+      );
       setState(() {
         _orders = orders;
         _isLoading = false;
@@ -49,28 +70,73 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       appBar: AppBar(
         title: const Text('ประวัติออเดอร์'),
         actions: [
-          PopupMenuButton<OrderStatus?>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (status) {
-              setState(() => _filterStatus = status);
-              _loadOrders();
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: null,
-                child: Text('ทั้งหมด'),
+          Row(
+            children: [
+              PopupMenuButton<OrderStatus?>(
+                icon: const Icon(Icons.filter_list),
+                onSelected: (status) {
+                  setState(() => _filterStatus = status);
+                  _loadOrders();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: null,
+                    child: Text('ทั้งหมด'),
+                  ),
+                  const PopupMenuItem(
+                    value: OrderStatus.pending,
+                    child: Text('รอดำเนินการ'),
+                  ),
+                  const PopupMenuItem(
+                    value: OrderStatus.completed,
+                    child: Text('เสร็จสิ้น'),
+                  ),
+                  const PopupMenuItem(
+                    value: OrderStatus.cancelled,
+                    child: Text('ยกเลิก'),
+                  ),
+                ],
               ),
-              const PopupMenuItem(
-                value: OrderStatus.pending,
-                child: Text('รอดำเนินการ'),
-              ),
-              const PopupMenuItem(
-                value: OrderStatus.completed,
-                child: Text('เสร็จสิ้น'),
-              ),
-              const PopupMenuItem(
-                value: OrderStatus.cancelled,
-                child: Text('ยกเลิก'),
+              const SizedBox(width: 8),
+              DropdownButton<DateFilter?>(
+                value: _isCustomRange ? null : _selectedDateFilter,
+                items: [
+                  ...DateFilter.values.map((filter) => DropdownMenuItem<DateFilter?>(
+                        value: filter,
+                        child: Text(filter.label),
+                      )),
+                  const DropdownMenuItem<DateFilter?>(value: null, child: Text('กำหนดเอง')),
+                ],
+                onChanged: (f) async {
+                  if (f == null) {
+                    // open date range picker for custom range
+                    final now = DateTime.now();
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      firstDate: DateTime(now.year - 5),
+                      lastDate: DateTime(now.year + 1),
+                      initialDateRange: (_customStart != null && _customEnd != null)
+                          ? DateTimeRange(start: _customStart!, end: _customEnd!)
+                          : null,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _isCustomRange = true;
+                        _customStart = picked.start;
+                        _customEnd = picked.end;
+                      });
+                      _loadOrders();
+                    }
+                  } else {
+                    setState(() {
+                      _selectedDateFilter = f;
+                      _isCustomRange = false;
+                      _customStart = null;
+                      _customEnd = null;
+                    });
+                    _loadOrders();
+                  }
+                },
               ),
             ],
           ),
@@ -197,6 +263,25 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                                       ),
                                     ),
                                   ],
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          if (order.id != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => OrderDetailScreen(orderId: order.id!),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(Icons.visibility),
+                                        label: const Text('รายละเอียด'),
+                                      ),
+                                    ],
+                                  ),
                                   if (order.isPending) ...[
                                     const SizedBox(height: 16),
                                     Row(
