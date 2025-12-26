@@ -281,14 +281,27 @@ class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
                           ...widget.cartItems.asMap().entries.map((entry) {
                             final index = entry.key;
                             final item = entry.value;
+                            final optionsStr = item.options.isNotEmpty
+                                ? item.options.map((o) => o.name).join(', ')
+                                : '';
                             return Column(
                               children: [
                                 ListTile(
-                                  title: Text(
-                                    item.productName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.productName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (optionsStr.isNotEmpty)
+                                        Text(
+                                          optionsStr,
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                    ],
                                   ),
                                   subtitle: Text(
                                     '${_currencyFormat.format(item.productPrice)} บาท x ${item.quantity}',

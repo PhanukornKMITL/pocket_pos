@@ -26,22 +26,112 @@ class _OrderScreenState extends State<OrderScreen> {
 
   double get _total => _cartItems.fold(0.0, (sum, item) => sum + item.subtotal);
 
-  void _addToCart(Product product) {
-    setState(() {
-      final existingIndex = _cartItems.indexWhere(
-        (item) => item.productId == product.id,
-      );
+  void _addToCart(Product product) async {
+    // If product has options, prompt user to select them
+    List<ProductOption> selectedOptions = [];
+    int quantity = 1;
 
-      if (existingIndex >= 0) {
-        final existingItem = _cartItems[existingIndex];
-        _cartItems[existingIndex] = existingItem.copyWith(
-          quantity: existingItem.quantity + 1,
-          subtotal: existingItem.productPrice * (existingItem.quantity + 1),
-        );
-      } else {
-        _cartItems.add(OrderItem.fromProduct(product));
-      }
-    });
+    if (product.options.isNotEmpty) {
+      final qtyController = TextEditingController(text: '1');
+      
+      if (!mounted) return;
+      
+      showDialog<Map<String, dynamic>?>(
+        context: context,
+        barrierDismissible: true,
+        builder: (dialogContext) {
+          final selected = List<bool>.filled(product.options.length, false);
+          return StatefulBuilder(builder: (dialogContext, setStateDialog) {
+            return AlertDialog(
+              title: Text('ตัวเลือก: ${product.name}'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ...product.options.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final opt = entry.value;
+                      return CheckboxListTile(
+                        value: selected[idx],
+                        onChanged: (v) => setStateDialog(() => selected[idx] = v ?? false),
+                        title: Text(opt.name),
+                        subtitle: Text('+${opt.price.toStringAsFixed(2)} บาท'),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: qtyController,
+                      decoration: const InputDecoration(labelText: 'จำนวน'),
+                      keyboardType: TextInputType.number,
+                      onEditingComplete: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    Navigator.pop(dialogContext, null);
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      qtyController.dispose();
+                    });
+                  },
+                  child: const Text('ยกเลิก'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final opts = <ProductOption>[];
+                    for (var i = 0; i < selected.length; i++) {
+                      if (selected[i]) opts.add(product.options[i]);
+                    }
+                    final q = int.tryParse(qtyController.text) ?? 1;
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    Navigator.pop(dialogContext, {'options': opts, 'quantity': q});
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      qtyController.dispose();
+                    });
+                  },
+                  child: const Text('เพิ่ม'),
+                ),
+              ],
+            );
+          });
+        },
+      ).then((res) {
+        if (res == null) return;
+        
+        selectedOptions = List<ProductOption>.from(res['options'] as List<ProductOption>);
+        quantity = res['quantity'] as int;
+
+        if (!mounted) return;
+        
+        setState(() {
+          // Try to merge with existing identical item (same productId and same option names)
+          final existingIndex = _cartItems.indexWhere((item) {
+            if (item.productId != product.id) return false;
+            final namesA = item.options.map((o) => o.name).toList();
+            final namesB = selectedOptions.map((o) => o.name).toList();
+            namesA.sort();
+            namesB.sort();
+            return namesA.join('|') == namesB.join('|');
+          });
+
+          if (existingIndex >= 0) {
+            final existingItem = _cartItems[existingIndex];
+            final newQty = existingItem.quantity + quantity;
+            _cartItems[existingIndex] = existingItem.copyWith(
+              quantity: newQty,
+              subtotal: existingItem.productPrice * newQty,
+            );
+          } else {
+            _cartItems.add(OrderItem.fromProduct(product, quantity: quantity, options: selectedOptions));
+          }
+        });
+      });
+    }
   }
 
   void _removeFromCart(int index) {
@@ -214,10 +304,18 @@ class _OrderScreenState extends State<OrderScreen> {
                   );
                 }
 
-        final products = snapshot.data ?? [];
-        final query = _searchQuery.trim().toLowerCase();
-        final filtered = query.isEmpty
-          ? products
+                final products = snapshot.data ?? [];
+                
+                // Debug: print loaded products with options
+                for (var p in products) {
+                  if (p.options.isNotEmpty) {
+                    print('Product: ${p.name}, Options: ${p.options.length}');
+                  }
+                }
+                
+                final query = _searchQuery.trim().toLowerCase();
+                final filtered = query.isEmpty
+                  ? products
           : products.where((p) => p.name.toLowerCase().contains(query)).toList();
 
                 if (filtered.isEmpty) {
@@ -432,10 +530,17 @@ class _OrderScreenState extends State<OrderScreen> {
                       itemCount: _cartItems.length,
                       itemBuilder: (context, index) {
                         final item = _cartItems[index];
+                        final optionsStr = item.options.isNotEmpty
+                            ? item.options.map((o) => '${o.name} (+${o.price.toStringAsFixed(2)})').join(', ')
+                            : '(ไม่มีตัวเลือก)';
                         return ListTile(
                           title: Text(item.productName),
-                          subtitle: Text(
-                            '${_currencyFormat.format(item.productPrice)} x ${item.quantity}',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${_currencyFormat.format(item.productPrice)} x ${item.quantity}'),
+                              Text(optionsStr, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

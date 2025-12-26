@@ -137,7 +137,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
                                 return ListTile(
                                   leading: leading,
-                                  title: Text(item.productName),
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(item.productName),
+                                      if (item.options.isNotEmpty)
+                                        Text(
+                                          item.options.map((o) => o.name).join(', '),
+                                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                        ),
+                                    ],
+                                  ),
                                   subtitle: Text('${_currencyFormat.format(item.productPrice)} x ${item.quantity}'),
                                   trailing: Text('${_currencyFormat.format(item.subtotal)}'),
                                 );

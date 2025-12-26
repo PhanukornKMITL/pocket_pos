@@ -22,7 +22,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -39,6 +39,7 @@ class DatabaseService {
         barcode TEXT,
         description TEXT,
         image_path TEXT,
+        options TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -68,6 +69,7 @@ class DatabaseService {
         product_price REAL NOT NULL,
         quantity INTEGER NOT NULL,
         subtotal REAL NOT NULL,
+        options TEXT,
         FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products (id)
       )
@@ -89,11 +91,18 @@ class DatabaseService {
       // Add qr_image blob column to orders table
       await db.execute('ALTER TABLE orders ADD COLUMN qr_image BLOB');
     }
+    if (oldVersion < 4) {
+      // Add options column to products and order_items
+      await db.execute('ALTER TABLE products ADD COLUMN options TEXT');
+      await db.execute('ALTER TABLE order_items ADD COLUMN options TEXT');
+    }
   }
 
   // Product CRUD operations
   Future<int> createProduct(Product product) async {
     final db = await database;
+    print('Creating product: ${product.name}');
+    print('Product toMap: ${product.toMap()}');
     return await db.insert('products', product.toMap());
   }
 
@@ -127,6 +136,8 @@ class DatabaseService {
 
   Future<int> updateProduct(Product product) async {
     final db = await database;
+    print('Updating product: ${product.name}');
+    print('Product toMap: ${product.toMap()}');
     return await db.update(
       'products',
       product.copyWith(updatedAt: DateTime.now()).toMap(),
@@ -363,6 +374,7 @@ class DatabaseService {
       SELECT 
         oi.product_name,
         oi.product_id,
+        oi.options,
         p.image_path as image_path,
         SUM(oi.quantity) as total_quantity,
         SUM(oi.subtotal) as total_revenue
@@ -370,7 +382,7 @@ class DatabaseService {
       INNER JOIN orders o ON oi.order_id = o.id
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE $whereClause
-      GROUP BY oi.product_id, oi.product_name
+      GROUP BY oi.product_id, oi.product_name, oi.options
       ORDER BY total_revenue DESC
     ''', whereArgs);
 

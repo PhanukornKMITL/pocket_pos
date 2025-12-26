@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Product {
   final int? id;
   final String name;
@@ -6,6 +8,7 @@ class Product {
   final String? barcode;
   final String? description;
   final String? imagePath;
+  final List<ProductOption> options;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,12 +20,16 @@ class Product {
     this.barcode,
     this.description,
     this.imagePath,
+    List<ProductOption>? options,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+        updatedAt = updatedAt ?? DateTime.now(),
+        options = options ?? [];
 
   Map<String, dynamic> toMap() {
+    final optionsJson = options.isNotEmpty ? jsonEncode(options.map((o) => o.toMap()).toList()) : null;
+    print('Product.toMap() - name: $name, options: $options, optionsJson: $optionsJson');
     return {
       'id': id,
       'name': name,
@@ -31,6 +38,7 @@ class Product {
       'barcode': barcode,
       'description': description,
       'image_path': imagePath,
+      'options': optionsJson,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -45,6 +53,9 @@ class Product {
       barcode: map['barcode'] as String?,
       description: map['description'] as String?,
       imagePath: map['image_path'] as String?,
+      options: map['options'] != null
+          ? (jsonDecode(map['options'] as String) as List).map((m) => ProductOption.fromMap(m as Map<String, dynamic>)).toList()
+          : [],
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
@@ -58,6 +69,7 @@ class Product {
     String? barcode,
     String? description,
     String? imagePath,
+    List<ProductOption>? options,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -69,11 +81,26 @@ class Product {
       barcode: barcode ?? this.barcode,
       description: description ?? this.description,
       imagePath: imagePath ?? this.imagePath,
+      options: options ?? this.options,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
   bool get isOutOfStock => stock <= 0;
+}
+
+class ProductOption {
+  final String name;
+  final double price;
+
+  ProductOption({required this.name, required this.price});
+
+  Map<String, dynamic> toMap() => {'name': name, 'price': price};
+
+  factory ProductOption.fromMap(Map<String, dynamic> map) => ProductOption(
+        name: map['name'] as String? ?? '',
+        price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
