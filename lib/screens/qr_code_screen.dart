@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../models/order.dart';
 import '../models/order_item.dart';
 import '../services/database_service.dart';
+import 'full_screen_image.dart';
 
 class QRCodeScreen extends StatefulWidget {
   final List<OrderItem> cartItems;
@@ -36,6 +37,8 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
   @override
   void initState() {
     super.initState();
+    // Always load saved default QR first so it appears for new orders.
+    _loadDefaultQr();
     if (widget.pendingOrderId != null) {
       _loadPendingOrderQr();
     }
@@ -53,8 +56,7 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
         return;
       }
     } catch (_) {}
-    // If no pending order QR, try loading default saved QR
-    await _loadDefaultQr();
+    // No pending-order QR found — keep previously loaded default (if any).
   }
 
   Future<void> _loadDefaultQr() async {
@@ -90,7 +92,8 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
         paymentMethod: 'QR Code',
         items: widget.cartItems,
         completedAt: DateTime.now(),
-        qrImage: qrBytes,
+        // Do not persist uploaded QR into the order record by default.
+        qrImage: null,
       );
 
       final db = DatabaseService.instance;
@@ -176,9 +179,23 @@ class _QRCodeScreenState extends State<QRCodeScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 24),
-                    // QR Code box — show uploaded image inside the square (tap to change)
+                    // QR Code box — tap to open full-screen when image present, otherwise pick
                     GestureDetector(
-                      onTap: _pickQrImage,
+                      onTap: () {
+                        if (_qrImageBytes != null || _qrImagePath != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FullScreenImageScreen(
+                                imageBytes: _qrImageBytes,
+                                imagePath: _qrImagePath,
+                              ),
+                            ),
+                          );
+                        } else {
+                          _pickQrImage();
+                        }
+                      },
                       child: Stack(
                         children: [
                           Container(

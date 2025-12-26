@@ -71,53 +71,94 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
               ),
               const SizedBox(height: 8),
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: top.map((e) {
-                      final revenue = (e['total_revenue'] as num?)?.toDouble() ?? 0.0;
-                      final name = e['product_name'] as String? ?? '';
-                      final fraction = maxRevenue == 0 ? 0.0 : (revenue / maxRevenue).clamp(0.0, 1.0);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Tooltip(
-                              message: '${name}\n${_currencyFormat.format(revenue)} บาท',
-                              child: Container(
-                                width: 40,
-                                height: 140,
-                                alignment: Alignment.bottomCenter,
-                                child: FractionallySizedBox(
-                                  heightFactor: fraction,
-                                  alignment: Alignment.bottomCenter,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).primaryColor,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
+                child: Row(
+                  children: [
+                    // Y-axis labels (max, mid, 0)
+                    SizedBox(
+                      width: 64,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(_currencyFormat.format(maxRevenue), style: const TextStyle(fontSize: 12)),
+                          Text(_currencyFormat.format(maxRevenue / 2), style: const TextStyle(fontSize: 12)),
+                          const Text('0', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Bars area with grid lines and labels
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          // horizontal grid lines (top, middle, bottom)
+                          Positioned.fill(
+                            child: Column(
+                              children: [
+                                Expanded(child: Container(decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[300]!))))),
+                                Expanded(child: Container(decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey[300]!))))),
+                                Expanded(child: Container()),
+                              ],
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: top.map((e) {
+                                final revenue = (e['total_revenue'] as num?)?.toDouble() ?? 0.0;
+                                final name = e['product_name'] as String? ?? '';
+                                final fraction = maxRevenue == 0 ? 0.0 : (revenue / maxRevenue).clamp(0.0, 1.0);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      // value label above bar
+                                      Text(
+                                        _currencyFormat.format(revenue),
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Tooltip(
+                                        message: '${name}\n${_currencyFormat.format(revenue)} บาท',
+                                        child: Container(
+                                          width: 40,
+                                          height: 140,
+                                          alignment: Alignment.bottomCenter,
+                                          child: FractionallySizedBox(
+                                            heightFactor: fraction,
+                                            alignment: Alignment.bottomCenter,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context).primaryColor,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        width: 72,
+                                        child: Text(
+                                          name,
+                                          style: const TextStyle(fontSize: 12),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
+                                );
+                              }).toList(),
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: 72,
-                              child: Text(
-                                name,
-                                style: const TextStyle(fontSize: 12),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

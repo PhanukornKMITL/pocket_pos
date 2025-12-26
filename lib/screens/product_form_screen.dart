@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import '../models/product.dart';
 import '../services/product_service.dart';
 
@@ -21,6 +25,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final _descriptionController = TextEditingController();
   final ProductService _productService = ProductService();
   bool _isSaving = false;
+  String? _imagePath;
+  Uint8List? _imageBytes; // used for web preview
 
   @override
   void initState() {
@@ -31,6 +37,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       _stockController.text = widget.product!.stock.toString();
       _barcodeController.text = widget.product!.barcode ?? '';
       _descriptionController.text = widget.product!.description ?? '';
+      _imagePath = widget.product!.imagePath;
     }
   }
 
@@ -61,6 +68,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        imagePath: _imagePath,
       );
 
       if (widget.product == null) {
@@ -89,6 +97,35 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         );
       }
     }
+  }
+
+  Future<void> _pickProductImage() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _imageBytes = bytes;
+          _imagePath = null;
+        });
+      } else {
+        setState(() {
+          _imagePath = picked.path;
+          _imageBytes = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ไม่สามารถเลือกภาพได้: $e')));
+    }
+  }
+
+  void _clearImage() {
+    setState(() {
+      _imagePath = null;
+      _imageBytes = null;
+    });
   }
 
   @override
@@ -173,6 +210,54 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
+            ),
+            const SizedBox(height: 16),
+            // Image upload / preview
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: _imageBytes != null
+                          ? Image.memory(_imageBytes!, fit: BoxFit.cover)
+                          : (_imagePath != null && _imagePath!.isNotEmpty)
+                              ? (kIsWeb
+                                  ? Image.network(_imagePath!, fit: BoxFit.cover)
+                                  : Image.file(File(_imagePath!), fit: BoxFit.cover))
+                              : Center(
+                                  child: Icon(
+                                    Icons.photo_camera_outlined,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _pickProductImage,
+                        child: const Text('อัพโหลดรูปสินค้า'),
+                      ),
+                      const SizedBox(width: 12),
+                      if (_imagePath != null || _imageBytes != null)
+                        TextButton(
+                          onPressed: _clearImage,
+                          child: const Text('ลบรูป', style: TextStyle(color: Colors.red)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(
