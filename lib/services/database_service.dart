@@ -22,7 +22,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -50,6 +50,7 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         status TEXT NOT NULL,
         total REAL NOT NULL,
+        qr_image BLOB,
         payment_method TEXT,
         notes TEXT,
         created_at TEXT NOT NULL,
@@ -83,6 +84,10 @@ class DatabaseService {
     if (oldVersion < 2) {
       // Add image_path column to products table
       await db.execute('ALTER TABLE products ADD COLUMN image_path TEXT');
+    }
+    if (oldVersion < 3) {
+      // Add qr_image blob column to orders table
+      await db.execute('ALTER TABLE orders ADD COLUMN qr_image BLOB');
     }
   }
 
@@ -145,7 +150,12 @@ class DatabaseService {
     final batch = db.batch();
 
     // Insert order
-    final orderId = await db.insert('orders', order.toMap());
+    final orderMap = order.toMap();
+    // ensure qr_image stored as bytes or null
+    if (order.qrImage != null) {
+      orderMap['qr_image'] = order.qrImage;
+    }
+    final orderId = await db.insert('orders', orderMap);
 
     // Insert order items (ensure we don't pass an existing `id` to avoid UNIQUE constraint)
     for (var item in order.items) {
@@ -272,6 +282,7 @@ class DatabaseService {
           'status': OrderStatus.completed.name,
           'payment_method': order.paymentMethod,
           'total': order.total,
+          'qr_image': order.qrImage,
           'completed_at': order.completedAt?.toIso8601String(),
         },
         where: 'id = ?',

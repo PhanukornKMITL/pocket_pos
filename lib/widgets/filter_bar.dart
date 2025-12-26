@@ -13,7 +13,7 @@ class FilterBar extends StatelessWidget {
   final ValueChanged<DateFilter>? onDateFilterChanged;
   final ValueChanged<DateTimeRange>? onCustomRangeSelected;
   final DateTimeRange? initialCustomRange;
-  final VoidCallback? onRefresh;
+  // refresh handled by parent with pull-to-refresh; removed onRefresh
 
   const FilterBar({
     super.key,
@@ -24,7 +24,7 @@ class FilterBar extends StatelessWidget {
     this.onDateFilterChanged,
     this.onCustomRangeSelected,
     this.initialCustomRange,
-    this.onRefresh,
+    // no onRefresh
   });
 
   @override
@@ -72,14 +72,7 @@ class FilterBar extends StatelessWidget {
           },
         ),
 
-        if (onRefresh != null) ...[
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: onRefresh,
-            tooltip: 'รีเฟรช',
-          ),
-        ],
+        // No refresh button: use pull-to-refresh instead
       ],
     );
   }

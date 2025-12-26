@@ -47,6 +47,86 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
     }
   }
 
+  Widget _buildBarChart() {
+    if (_salesDetail.isEmpty) return const SizedBox.shrink();
+
+    // Show top 8 products by revenue using simple widgets (no external chart lib)
+    final items = List<Map<String, dynamic>>.from(_salesDetail);
+    items.sort((a, b) => ((b['total_revenue'] as num?)?.toDouble() ?? 0).compareTo((a['total_revenue'] as num?)?.toDouble() ?? 0));
+    final top = items.take(8).toList();
+    final maxRevenue = top.map((e) => (e['total_revenue'] as num?)?.toDouble() ?? 0.0).fold<double>(0.0, (p, e) => e > p ? e : p);
+
+    return SizedBox(
+      height: 260,
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ยอดขายตามสินค้า (Top)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: top.map((e) {
+                      final revenue = (e['total_revenue'] as num?)?.toDouble() ?? 0.0;
+                      final name = e['product_name'] as String? ?? '';
+                      final fraction = maxRevenue == 0 ? 0.0 : (revenue / maxRevenue).clamp(0.0, 1.0);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Tooltip(
+                              message: '${name}\n${_currencyFormat.format(revenue)} บาท',
+                              child: Container(
+                                width: 40,
+                                height: 140,
+                                alignment: Alignment.bottomCenter,
+                                child: FractionallySizedBox(
+                                  heightFactor: fraction,
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: 72,
+                              child: Text(
+                                name,
+                                style: const TextStyle(fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,7 +152,6 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
                 });
               },
               initialCustomRange: null,
-              onRefresh: _loadSalesDetail,
             ),
           ),
         ],
@@ -105,36 +184,10 @@ class _SalesDetailScreenState extends State<SalesDetailScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16.0),
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'ยอดขายตามสินค้า',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          DropdownButton<DateFilter>(
-                            value: _selectedFilter,
-                            items: DateFilter.values.map((filter) {
-                              return DropdownMenuItem(
-                                value: filter,
-                                child: Text(filter.label),
-                              );
-                            }).toList(),
-                            onChanged: (filter) {
-                              if (filter != null) {
-                                setState(() {
-                                  _selectedFilter = filter;
-                                });
-                                _loadSalesDetail();
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      // Chart (top products) and header
+                      _buildBarChart(),
+                      const SizedBox(height: 8),
                       ..._salesDetail.map((item) {
                         final productName = item['product_name'] as String;
                         final totalQuantity = item['total_quantity'] as int? ?? 0;

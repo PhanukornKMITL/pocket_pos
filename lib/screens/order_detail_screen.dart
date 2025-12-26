@@ -144,6 +144,67 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Show stored QR image if present
+                      if (_order!.qrImage != null) ...[
+                        const SizedBox(height: 12),
+                        Text('ภาพ QR ที่บันทึกไว้', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            Container(
+                              width: 250,
+                              height: 250,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!, width: 2),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.memory(
+                                  _order!.qrImage!,
+                                  fit: BoxFit.cover,
+                                  width: 250,
+                                  height: 250,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: CircleAvatar(
+                                backgroundColor: Colors.white70,
+                                child: IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  color: Colors.red,
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('ลบภาพ QR'),
+                                        content: const Text('คุณแน่ใจหรือจะลบภาพ QR ที่บันทึกไว้?'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
+                                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('ลบ', style: TextStyle(color: Colors.red))),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      try {
+                                        final updated = _order!.copyWith(qrImage: null);
+                                        await _db.updateOrder(updated);
+                                        await _loadOrder();
+                                      } catch (e) {
+                                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ไม่สามารถลบได้: $e')));
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       Text(
                         'รวมทั้งหมด: ${_currencyFormat.format(_order!.total)} บาท',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

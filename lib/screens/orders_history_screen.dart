@@ -42,8 +42,8 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
         startDate = _customStart;
         endDate = _customEnd;
       } else {
-  startDate = _selectedDateFilter?.startDate;
-  endDate = _selectedDateFilter?.endDate;
+        startDate = _selectedDateFilter?.startDate;
+        endDate = _selectedDateFilter?.endDate;
       }
 
       final orders = await _db.getAllOrders(
@@ -58,9 +58,9 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
       }
     }
   }
@@ -101,7 +101,6 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                 });
                 _loadOrders();
               },
-              onRefresh: _loadOrders,
             ),
           ),
         ],
@@ -109,184 +108,181 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _orders.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.receipt_long_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'ยังไม่มีออเดอร์',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadOrders,
-                  child: ListView.builder(
-                    itemCount: _orders.length,
-                    itemBuilder: (context, index) {
-                      final order = _orders[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: ExpansionTile(
-                          leading: _getStatusIcon(order.status),
-                          title: Text(
-                            'ออเดอร์ #${order.id}',
-                            style: const TextStyle(
+                  const SizedBox(height: 16),
+                  Text(
+                    'ยังไม่มีออเดอร์',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadOrders,
+              child: ListView.builder(
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final order = _orders[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: ExpansionTile(
+                      leading: _getStatusIcon(order.status),
+                      title: Text(
+                        'ออเดอร์ #${order.id}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_dateFormat.format(order.createdAt)),
+                          Text(
+                            '${_currencyFormat.format(order.total)} บาท',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          subtitle: Column(
+                        ],
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_dateFormat.format(order.createdAt)),
-                              Text(
-                                '${_currencyFormat.format(order.total)} บาท',
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ...order.items.map((item) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                '${item.productName} x ${item.quantity}',
-                                              ),
-                                            ),
-                                            Text(
-                                              '${_currencyFormat.format(item.subtotal)} บาท',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )),
-                                  const Divider(),
-                                  Row(
+                              ...order.items.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text(
-                                        'รวมทั้งหมด',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                                      Expanded(
+                                        child: Text(
+                                          '${item.productName} x ${item.quantity}',
                                         ),
                                       ),
                                       Text(
-                                        '${_currencyFormat.format(order.total)} บาท',
-                                        style: TextStyle(
-                                          fontSize: 18,
+                                        '${_currencyFormat.format(item.subtotal)} บาท',
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).primaryColor,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (order.paymentMethod != null) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'วิธีชำระ: ${order.paymentMethod}',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                      ),
+                                ),
+                              ),
+                              const Divider(),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'รวมทั้งหมด',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                  if (order.completedAt != null) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'ปิดออเดอร์: ${_dateFormat.format(order.completedAt!)}',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      OutlinedButton.icon(
-                                        onPressed: () {
-                                          if (order.id != null) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => OrderDetailScreen(orderId: order.id!),
-                                              ),
-                                            );
-                                          }
-                                        },
-                                        icon: const Icon(Icons.visibility),
-                                        label: const Text('รายละเอียด'),
-                                      ),
-                                    ],
                                   ),
-                                  if (order.isPending) ...[
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton.icon(
-                                            onPressed: () => _continueOrder(order),
-                                            icon: const Icon(Icons.edit),
-                                            label: const Text('ทำต่อ'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: OutlinedButton.icon(
-                                            onPressed: () => _cancelOrder(order),
-                                            icon: const Icon(Icons.cancel),
-                                            label: const Text('ยกเลิก'),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.red,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  Text(
+                                    '${_currencyFormat.format(order.total)} บาท',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).primaryColor,
                                     ),
-                                  ],
+                                  ),
                                 ],
                               ),
-                            ),
-                          ],
+                              if (order.paymentMethod != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'วิธีชำระ: ${order.paymentMethod}',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                              if (order.completedAt != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'ปิดออเดอร์: ${_dateFormat.format(order.completedAt!)}',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      if (order.id != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                OrderDetailScreen(
+                                                  orderId: order.id!,
+                                                ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.visibility),
+                                    label: const Text('รายละเอียด'),
+                                  ),
+                                ],
+                              ),
+                              if (order.isPending) ...[
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () =>
+                                            _continueOrder(order),
+                                        icon: const Icon(Icons.edit),
+                                        label: const Text('ทำต่อ'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _cancelOrder(order),
+                                        icon: const Icon(Icons.cancel),
+                                        label: const Text('ยกเลิก'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 
   Future<void> _continueOrder(Order order) async {
     if (!mounted) return;
     final navigator = Navigator.of(context);
-    
+
     // Navigate to checkout screen with order items and pending order ID
     await navigator.push(
       MaterialPageRoute(
@@ -338,9 +334,9 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('เกิดข้อผิดพลาด: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
         }
       }
     }
@@ -357,4 +353,3 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
     }
   }
 }
-

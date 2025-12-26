@@ -68,13 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pocket POS'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStatistics,
-            tooltip: 'รีเฟรช',
-          ),
-        ],
+        actions: [],
       ),
       body: RefreshIndicator(
         onRefresh: _loadStatistics,
@@ -169,29 +163,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Statistics
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'สรุปยอดขาย (${_selectedFilter.label})',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'สรุปยอดขาย',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  FilterBar(
-                    showStatusFilter: false,
-                    selectedDateFilter: _selectedFilter,
-                    onDateFilterChanged: (f) {
-                      setState(() => _selectedFilter = f);
-                      _loadStatistics();
-                    },
-                    onCustomRangeSelected: (range) {
-                      // apply custom range directly to statistics
-                      _db.getSalesStatistics(startDate: range.start, endDate: range.end).then((stats) {
-                        if (mounted) setState(() => _statistics = stats);
-                      });
-                    },
-                    onRefresh: _loadStatistics,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FilterBar(
+                        showStatusFilter: false,
+                        selectedDateFilter: _selectedFilter,
+                        onDateFilterChanged: (f) {
+                          setState(() => _selectedFilter = f);
+                          _loadStatistics();
+                        },
+                        onCustomRangeSelected: (range) {
+                          // apply custom range directly to statistics
+                          _db.getSalesStatistics(startDate: range.start, endDate: range.end).then((stats) {
+                            if (mounted) setState(() => _statistics = stats);
+                          });
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),

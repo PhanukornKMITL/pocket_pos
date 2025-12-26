@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'order_item.dart';
 
 enum OrderStatus {
@@ -14,6 +15,7 @@ class Order {
   final String? notes;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final Uint8List? qrImage;
   final List<OrderItem> items;
 
   Order({
@@ -22,6 +24,7 @@ class Order {
     required this.total,
     this.paymentMethod,
     this.notes,
+    this.qrImage,
     DateTime? createdAt,
     this.completedAt,
     List<OrderItem>? items,
@@ -35,6 +38,7 @@ class Order {
       'total': total,
       'payment_method': paymentMethod,
       'notes': notes,
+      'qr_image': qrImage,
       'created_at': createdAt.toIso8601String(),
       'completed_at': completedAt?.toIso8601String(),
     };
@@ -54,6 +58,7 @@ class Order {
       completedAt: map['completed_at'] != null
           ? DateTime.parse(map['completed_at'] as String)
           : null,
+      qrImage: map['qr_image'] as Uint8List?,
       items: items ?? [],
     );
   }
@@ -64,6 +69,7 @@ class Order {
     double? total,
     String? paymentMethod,
     String? notes,
+    Uint8List? qrImage,
     DateTime? createdAt,
     DateTime? completedAt,
     List<OrderItem>? items,
@@ -74,6 +80,7 @@ class Order {
       total: total ?? this.total,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       notes: notes ?? this.notes,
+      qrImage: qrImage ?? this.qrImage,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       items: items ?? this.items,

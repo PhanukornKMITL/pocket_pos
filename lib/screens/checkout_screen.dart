@@ -64,152 +64,154 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       appBar: AppBar(
         title: const Text('สรุปออเดอร์'),
       ),
-      body: Column(
-        children: [
-          // Order Summary
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Order Summary
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'รายการสินค้า',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Column(
+                        children: [
+                          ...widget.cartItems.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final item = entry.value;
+                            return Column(
+                              children: [
+                                ListTile(
+                                  title: Text(
+                                    item.productName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${_currencyFormat.format(item.productPrice)} บาท x ${item.quantity}',
+                                  ),
+                                  trailing: Text(
+                                    '${_currencyFormat.format(item.subtotal)} บาท',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                if (index < widget.cartItems.length - 1)
+                                  const Divider(height: 1),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'วิธีชำระเงิน',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _PaymentMethodOption(
+                      title: 'เงินสด',
+                      icon: Icons.money,
+                      isSelected: _selectedPaymentMethod == 'เงินสด',
+                      onTap: () {
+                        setState(() => _selectedPaymentMethod = 'เงินสด');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _PaymentMethodOption(
+                      title: 'QR Code',
+                      icon: Icons.qr_code,
+                      isSelected: _selectedPaymentMethod == 'QR Code',
+                      onTap: () {
+                        setState(() => _selectedPaymentMethod = 'QR Code');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        
+            // Total and Confirm Button
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'รายการสินค้า',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'รวมทั้งหมด',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${_currencyFormat.format(widget.total)} บาท',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
-                  Card(
-                    child: Column(
-                      children: [
-                        ...widget.cartItems.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final item = entry.value;
-                          return Column(
-                            children: [
-                              ListTile(
-                                title: Text(
-                                  item.productName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${_currencyFormat.format(item.productPrice)} บาท x ${item.quantity}',
-                                ),
-                                trailing: Text(
-                                  '${_currencyFormat.format(item.subtotal)} บาท',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              if (index < widget.cartItems.length - 1)
-                                const Divider(height: 1),
-                            ],
-                          );
-                        }),
-                      ],
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _selectedPaymentMethod == null ? null : _proceedToPayment,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _selectedPaymentMethod == null
+                            ? Colors.grey[300]
+                            : Theme.of(context).primaryColor,
+                        foregroundColor: _selectedPaymentMethod == null
+                            ? Colors.grey[600]
+                            : Colors.white,
+                        disabledBackgroundColor: Colors.grey[300],
+                        disabledForegroundColor: Colors.grey[600],
+                      ),
+                      child: const Text(
+                        'ดำเนินการต่อ',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'วิธีชำระเงิน',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _PaymentMethodOption(
-                    title: 'เงินสด',
-                    icon: Icons.money,
-                    isSelected: _selectedPaymentMethod == 'เงินสด',
-                    onTap: () {
-                      setState(() => _selectedPaymentMethod = 'เงินสด');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _PaymentMethodOption(
-                    title: 'QR Code',
-                    icon: Icons.qr_code,
-                    isSelected: _selectedPaymentMethod == 'QR Code',
-                    onTap: () {
-                      setState(() => _selectedPaymentMethod = 'QR Code');
-                    },
                   ),
                 ],
               ),
             ),
-          ),
-
-          // Total and Confirm Button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'รวมทั้งหมด',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      '${_currencyFormat.format(widget.total)} บาท',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _selectedPaymentMethod == null ? null : _proceedToPayment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _selectedPaymentMethod == null
-                          ? Colors.grey[300]
-                          : Theme.of(context).primaryColor,
-                      foregroundColor: _selectedPaymentMethod == null
-                          ? Colors.grey[600]
-                          : Colors.white,
-                      disabledBackgroundColor: Colors.grey[300],
-                      disabledForegroundColor: Colors.grey[600],
-                    ),
-                    child: const Text(
-                      'ดำเนินการต่อ',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

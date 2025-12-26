@@ -22,6 +22,7 @@ class _OrderScreenState extends State<OrderScreen> {
   final DatabaseService _db = DatabaseService.instance;
   final List<OrderItem> _cartItems = [];
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00');
+  String _searchQuery = '';
 
   double get _total => _cartItems.fold(0.0, (sum, item) => sum + item.subtotal);
 
@@ -177,7 +178,27 @@ class _OrderScreenState extends State<OrderScreen> {
       body: SafeArea(
         child: Column(
           children: [
-          // Products Grid
+          // Search + Products Grid
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'ค้นหาสินค้า',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(() => _searchQuery = ''),
+                      )
+                    : null,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              ),
+              onChanged: (v) => setState(() => _searchQuery = v),
+            ),
+          ),
+
           Expanded(
             flex: 2,
             child: FutureBuilder<List<Product>>(
@@ -193,9 +214,13 @@ class _OrderScreenState extends State<OrderScreen> {
                   );
                 }
 
-                final products = snapshot.data ?? [];
+        final products = snapshot.data ?? [];
+        final query = _searchQuery.trim().toLowerCase();
+        final filtered = query.isEmpty
+          ? products
+          : products.where((p) => p.name.toLowerCase().contains(query)).toList();
 
-                if (products.isEmpty) {
+                if (filtered.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -207,7 +232,7 @@ class _OrderScreenState extends State<OrderScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'ยังไม่มีสินค้า',
+                          query.isEmpty ? 'ยังไม่มีสินค้า' : 'ไม่พบสินค้า',
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey[600],
@@ -240,9 +265,9 @@ class _OrderScreenState extends State<OrderScreen> {
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: products.length,
+                  itemCount: filtered.length,
                   itemBuilder: (context, index) {
-                    final product = products[index];
+                    final product = filtered[index];
                     final cartItem = _cartItems.firstWhere(
                       (item) => item.productId == product.id,
                       orElse: () => OrderItem(
@@ -274,7 +299,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                             path,
                                             width: 72,
                                             height: 72,
-                                            fit: BoxFit.contain,
+                                            fit: BoxFit.cover,
                                             errorBuilder: (context, error, stack) => Icon(
                                               Icons.shopping_bag,
                                               size: 48,
@@ -302,7 +327,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                             file,
                                             width: 72,
                                             height: 72,
-                                            fit: BoxFit.contain,
+                                            fit: BoxFit.cover,
                                             errorBuilder: (context, error, stack) => Icon(
                                               Icons.shopping_bag,
                                               size: 48,
